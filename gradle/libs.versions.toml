@@ -3,3 +3,7 @@ revanced-patcher = "21.0.0"
 # Tracking https://github.com/google/smali/issues/64.
 #noinspection GradleDependency
 smali = "3.0.5"
+okhttp = "5.1.0"
+
+[libraries]
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp"}
