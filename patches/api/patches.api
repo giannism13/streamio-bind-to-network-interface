@@ -1,4 +1,12 @@
-public final class app/revanced/patches/stremio/BindToNicPatchKt {
-	public static final fun getBindToNicPatch ()Lapp/revanced/patcher/patch/BytecodePatch;
+public final class stremio/patches/bindnic/fingerprints/ApplicationOnCreateFingerprintKt {
+	public static final fun getApplicationOnCreateFingerprint ()Lapp/revanced/patcher/Fingerprint;
+}
+
+public final class stremio/patches/bindnic/fingerprints/OkHttpBuilderBuildFingerprintKt {
+	public static final fun getOkHttpBuilderBuildFingerprint ()Lapp/revanced/patcher/Fingerprint;
+}
+
+public final class stremio/patches/bindnic/patch/BindToNicKt {
+	public static final fun getBindToNic ()Lapp/revanced/patcher/patch/BytecodePatch;
 }
 
