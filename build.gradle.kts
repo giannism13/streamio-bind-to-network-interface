@@ -4,6 +4,7 @@ subprojects {
 	tasks.withType<KotlinCompile>().configureEach {
 		compilerOptions {
 			freeCompilerArgs.add("-Xcontext-parameters")
+			freeCompilerArgs.add("-Xcontext-receivers")
 		}
 	}
 }

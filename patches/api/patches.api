@@ -1,4 +1,4 @@
-public final class app/revanced/patches/example/ExamplePatchKt {
-	public static final fun getExamplePatch ()Lapp/revanced/patcher/patch/BytecodePatch;
+public final class app/revanced/patches/stremio/BindToNicPatchKt {
+	public static final fun getBindToNicPatch ()Lapp/revanced/patcher/patch/BytecodePatch;
 }
 
