@@ -1,7 +1,11 @@
+dependencies {
+	compileOnly(libs.okhttp)
+}
+
 extension {
     name = "extensions/extension.mpe"
 }
 
 android {
-    namespace = "app.template.extension"
+	namespace = "stremio.morphe.extension"
 }
