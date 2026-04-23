@@ -1,4 +1,25 @@
 {
-  "version": "",
-  "patches": []
+  "version": "v1.0.0",
+  "patches": [
+    {
+      "name": "Bind to a network interface",
+      "description": "Routes all network traffic through a specific network interface",
+      "use": true,
+      "dependencies": [],
+      "compatiblePackages": {
+        "com.stremio.one": null
+      },
+      "options": [
+        {
+          "key": "nic",
+          "title": null,
+          "description": "The network interface to bind to",
+          "required": true,
+          "type": "kotlin.String",
+          "default": "tun0",
+          "values": null
+        }
+      ]
+    }
+  ]
 }

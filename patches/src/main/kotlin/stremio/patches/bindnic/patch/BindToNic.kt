@@ -19,7 +19,7 @@ val bindToNic = bytecodePatch(
 	extendWith("extensions/extension.mpe")
 
 	val vpnInterface by stringOption(
-		"nic",
+		"NIC",
 		"tun0",
 		description = "The network interface to bind to",
 		required = true
@@ -29,11 +29,13 @@ val bindToNic = bytecodePatch(
 		val method = ApplicationOnCreateFingerprint.method
 		val insertIndex = method.implementation!!.instructions.size - 1
 
+		val register = method.implementation!!.registerCount
+
 		method.addInstructions(
 			insertIndex,
 			"""
-					const-string v0, $vpnInterface
-                    invoke-static {p0, v0}, Lstremio/morphe/extension/nicbinding/NicBinding;->onAppCreate(Landroid/app/Application;Ljava/lang/String;)V
+					const-string v$register, "$vpnInterface"
+                    invoke-static {p0, v$register}, Lstremio/morphe/extension/nicbinding/NicBinding;->onAppCreate(Landroid/app/Application;Ljava/lang/String;)V
 				""".trimIndent()
 		)
 

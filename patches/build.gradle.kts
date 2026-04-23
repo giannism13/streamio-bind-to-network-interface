@@ -2,8 +2,8 @@ group = "app.template"
 
 patches {
     about {
-        name = "UserXYZ Patches"
-        description = "Patches for apps I like"
+        name = "Stremio patches"
+        description = "Patches for stremio"
         source = "git@github.com:UserXYZ/morphe-patches.git"
         author = "Awesome dev"
         contact = "na"
@@ -30,7 +30,7 @@ tasks {
         dependsOn(build)
 
         classpath = sourceSets["main"].runtimeClasspath
-        mainClass.set("app.morphe.util.PatchListGeneratorKt")
+        mainClass.set("stremio.util.PatchListGeneratorKt")
     }
     // Used by gradle-semantic-release-plugin.
     publish {
