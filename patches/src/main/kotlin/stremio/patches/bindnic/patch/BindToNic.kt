@@ -26,64 +26,76 @@ val bindToNic = bytecodePatch(
 	)
 
 	execute {
-		val method = ApplicationOnCreateFingerprint.method
-		val insertIndex = method.implementation!!.instructions.size - 1
 
-		val register = method.implementation!!.registerCount - 1
+		// ----------------------------
+		// 1) Hook Application.onCreate safely
+		// ----------------------------
+		val method = ApplicationOnCreateFingerprint.method
+		val impl = method.implementation ?: return@execute
+		val insns = impl.instructions
+
+		// Insert BEFORE final return (more stable than size - 1)
+		val insertIndex = insns.indexOfLast {
+			it.opcode.name.startsWith("RETURN")
+		}.takeIf { it >= 0 } ?: return@execute
 
 		method.addInstructions(
 			insertIndex,
 			"""
-					const-string v$register, "${vpnInterface}"
-                    invoke-static {p0, v$register}, Lstremio/morphe/extension/nicbinding/NicBinding;->onAppCreate(Landroid/app/Application;Ljava/lang/String;)V
-				""".trimIndent()
+			const-string v0, "$vpnInterface"
+			invoke-static {p0, v0}, Lstremio/morphe/extension/nicbinding/NicBinding;->onAppCreate(Landroid/app/Application;Ljava/lang/String;)V
+		""".trimIndent()
 		)
 
-		// 2) Hook OkHttpClient.Builder.build() to configure + register clients
+		// ----------------------------
+		// 2) Hook OkHttpClient.Builder creation safely
+		// ----------------------------
 		val buildMethod = OkHttpEngineCreateClientFingerprint.method
-		// Insert at the top of build():
-		// call OkHttpHooks.configure(this)
-		// (builder is p0)
-		val insns = buildMethod.implementation!!.instructions
+		val buildImpl = buildMethod.implementation ?: return@execute
+		val buildInsns = buildImpl.instructions
 
-		val idx = insns.indexOfFirst {
+		// Find newBuilder() call (loose but stable match)
+		val idx = buildInsns.indexOfFirst {
 			it.opcode.name.startsWith("INVOKE") &&
-					it.toString().contains("newBuilder") &&
-					it.toString().contains("OkHttpClient")
-		}
-
-		if (idx < 0) return@execute
+					it.toString().contains("newBuilder")
+		}.takeIf { it >= 0 } ?: return@execute
 
 		val moveIdx = idx + 1
-		if (moveIdx >= insns.size) return@execute
+		if (moveIdx >= buildInsns.size) return@execute
 
 		val moveInsn = buildMethod.getInstruction(moveIdx)
-
 		if (!moveInsn.opcode.name.startsWith("MOVE_RESULT")) return@execute
 
-		val reg = moveInsn.toString().substringAfter("move-result-object ").trim()
+		val builderReg = moveInsn.toString()
+			.substringAfter("move-result-object ")
+			.trim()
 
+		// Inject configure() after builder creation
 		buildMethod.addInstructions(
 			moveIdx + 1,
 			$$"""
-            invoke-static {$reg}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->configure(Lokhttp3/OkHttpClient$Builder;)Lokhttp3/OkHttpClient$Builder;
-            move-result-object $reg
-            """.trimIndent()
+			invoke-static {$builderReg}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->configure(Lokhttp3/OkHttpClient$Builder;)Lokhttp3/OkHttpClient$Builder;
+			move-result-object $builderReg
+			""".trimIndent()
 		)
 
-		val buildImpl = buildMethod.implementation ?: error("OkHttp build has no implementation")
-		val buildInsns = buildImpl.instructions
-
-		val retIndex = buildInsns.indexOfLast { it.opcode.name == "RETURN_OBJECT" }
+		// ----------------------------
+		// 3) Hook final OkHttpClient return safely
+		// ----------------------------
+		val retIndex = buildInsns.indexOfLast {
+			it.opcode.name == "RETURN_OBJECT"
+		}.takeIf { it >= 0 } ?: return@execute
 
 		val retInsn = buildMethod.getInstruction(retIndex)
-		val retReg = retInsn.toString().substringAfter("return-object ").trim()
+		val retReg = retInsn.toString()
+			.substringAfter("return-object ")
+			.trim()
 
 		buildMethod.addInstructions(
 			retIndex,
 			"""
-            invoke-static {$retReg}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->register(Lokhttp3/OkHttpClient;)V
-            """.trimIndent()
+			invoke-static {$retReg}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->register(Lokhttp3/OkHttpClient;)V
+			""".trimIndent()
 		)
 	}
 }
