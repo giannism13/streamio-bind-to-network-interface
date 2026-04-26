@@ -1,5 +1,6 @@
 package stremio.morphe.extension.nicbinding
 
+import android.util.Log
 import okhttp3.Dns
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -16,6 +17,7 @@ object OkHttpHooks {
 	@JvmStatic
 	fun register(client: OkHttpClient) {
 		clients[System.identityHashCode(client)] = client
+		Log.e("NIC_BIND_PATCH", "register executed")
 	}
 
 	@JvmStatic
@@ -56,6 +58,7 @@ object OkHttpHooks {
 		NicBinding.currentNetwork()?.let { n ->
 			runCatching { builder.socketFactory(n.socketFactory) }
 		}
+		Log.e("NIC_BIND_PATCH", "configure executed")
 
 		return builder
 	}

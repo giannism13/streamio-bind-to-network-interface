@@ -3,6 +3,7 @@ package stremio.morphe.extension.nicbinding
 import android.app.Application
 import android.content.Context
 import android.net.*
+import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 
 object NicBinding {
@@ -20,11 +21,13 @@ object NicBinding {
 	 */
 	@JvmStatic
 	fun onAppCreate(app: Application, iface: String) {
+		Log.e("NIC_BIND_PATCH", "onAppCreate executed")
 		start(app.applicationContext, iface)
 	}
 
 	@JvmStatic
 	fun start(ctx: Context, iface: String) {
+		Log.e("NIC_BIND_PATCH", "start executed")
 		val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
 		// Restart-safe
