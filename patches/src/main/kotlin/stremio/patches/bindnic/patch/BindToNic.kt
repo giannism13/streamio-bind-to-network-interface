@@ -6,7 +6,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.stringOption
 import stremio.patches.shared.Constants.STREMIO_BIND_NIC_COMPATIBILITY
 import stremio.patches.bindnic.fingerprints.ApplicationOnCreateFingerprint
-import stremio.patches.bindnic.fingerprints.OkHttpBuilderBuildFingerprint
+import stremio.patches.bindnic.fingerprints.OkHttpEngineCreateClientFingerprint
 
 @Suppress("unused")
 val bindToNic = bytecodePatch(
@@ -29,26 +29,45 @@ val bindToNic = bytecodePatch(
 		val method = ApplicationOnCreateFingerprint.method
 		val insertIndex = method.implementation!!.instructions.size - 1
 
-		val register = method.implementation!!.registerCount
+		val register = method.implementation!!.registerCount - 1
 
 		method.addInstructions(
 			insertIndex,
 			"""
-					const-string v$register, "$vpnInterface"
+					const-string v$register, "${vpnInterface}"
                     invoke-static {p0, v$register}, Lstremio/morphe/extension/nicbinding/NicBinding;->onAppCreate(Landroid/app/Application;Ljava/lang/String;)V
 				""".trimIndent()
 		)
 
 		// 2) Hook OkHttpClient.Builder.build() to configure + register clients
-		val buildMethod = OkHttpBuilderBuildFingerprint.method
+		val buildMethod = OkHttpEngineCreateClientFingerprint.method
 		// Insert at the top of build():
 		// call OkHttpHooks.configure(this)
 		// (builder is p0)
+		val insns = buildMethod.implementation!!.instructions
+
+		val idx = insns.indexOfFirst {
+			it.opcode.name.startsWith("INVOKE") &&
+					it.toString().contains("newBuilder") &&
+					it.toString().contains("OkHttpClient")
+		}
+
+		if (idx < 0) return@execute
+
+		val moveIdx = idx + 1
+		if (moveIdx >= insns.size) return@execute
+
+		val moveInsn = buildMethod.getInstruction(moveIdx)
+
+		if (!moveInsn.opcode.name.startsWith("MOVE_RESULT")) return@execute
+
+		val reg = moveInsn.toString().substringAfter("move-result-object ").trim()
+
 		buildMethod.addInstructions(
-			0,
+			moveIdx + 1,
 			$$"""
-            invoke-static {p0}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->configure(Lokhttp3/OkHttpClient$Builder;)Lokhttp3/OkHttpClient$Builder;
-            move-result-object p0
+            invoke-static {$reg}, Lstremio/morphe/extension/nicbinding/OkHttpHooks;->configure(Lokhttp3/OkHttpClient$Builder;)Lokhttp3/OkHttpClient$Builder;
+            move-result-object $reg
             """.trimIndent()
 		)
 
@@ -56,13 +75,9 @@ val bindToNic = bytecodePatch(
 		val buildInsns = buildImpl.instructions
 
 		val retIndex = buildInsns.indexOfLast { it.opcode.name == "RETURN_OBJECT" }
-		if (retIndex < 0) error("OkHttp build return not found")
 
-		// We need the register holding the return object.
-		// ReVanced patcher usually provides helpers to read return register; if not, use toString parse as fallback.
 		val retInsn = buildMethod.getInstruction(retIndex)
-		val retText = retInsn.toString() // e.g. "return-object v0"
-		val retReg = retText.substringAfter("return-object ").trim()
+		val retReg = retInsn.toString().substringAfter("return-object ").trim()
 
 		buildMethod.addInstructions(
 			retIndex,

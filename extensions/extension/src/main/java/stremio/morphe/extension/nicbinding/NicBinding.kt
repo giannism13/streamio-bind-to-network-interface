@@ -56,8 +56,7 @@ object NicBinding {
 				// Already bound + allowed
 				if (pinned == n && isNetworkAllowed.get()) return
 
-				@Suppress("DEPRECATION")
-				val ok = ConnectivityManager.setProcessDefaultNetwork(n)
+				val ok = cm.bindProcessToNetwork(n)
 
 				if (ok) {
 					pinned = n
